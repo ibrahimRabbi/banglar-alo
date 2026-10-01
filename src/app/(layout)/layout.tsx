@@ -10,6 +10,7 @@ import {
 } from 'react-icons/md';
 import { FaChalkboardTeacher, FaUserGraduate } from 'react-icons/fa';
 import { CiSettings } from 'react-icons/ci';
+import Image from 'next/image';
 
 /* ─── types ─── */
 interface SubItem {
@@ -44,10 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
         badge: 42,
         children: [
             { label: 'All centers', href: '/training-centers/all' },
-            { label: 'Add center', href: '/training-centers/add' },
-            { label: 'By division', href: '/training-centers/division' },
-            { label: 'By district', href: '/training-centers/district' },
-            { label: 'By sub-area (upazila)', href: '/training-centers/sub-area' },
+            { label: 'Add center', href: '/training-centers/create-center' },
         ],
     },
     {
@@ -242,7 +240,13 @@ export default function SidebarClient({ children }: { children: React.ReactNode 
                 {/* Logo */}
                 <div className="border-b border-gray-50 py-10 flex items-center justify-center">
                     <Link href='/' className='text-base font-light tracking-[0.25em] uppercase text-zinc-800 inline-block'>
-                        E D U <span className='text-green-600'>T</span> R A C K
+                        <Image
+                            src='https://res.cloudinary.com/dymnrefpr/image/upload/v1790859268/wptp7quzw5h8vtveeoyj.png'
+                            alt='Banglar Alo Logo'
+                            width={400}
+                            height={40}
+                            className='object-contain'
+                        />
                     </Link>
                 </div>
 
@@ -284,7 +288,7 @@ export default function SidebarClient({ children }: { children: React.ReactNode 
                 </div>
             </aside>
 
-            <main className="w-[80%] ">
+            <main className="w-[80%]">
                 {children}
             </main>
         </div>
