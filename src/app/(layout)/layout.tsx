@@ -54,10 +54,8 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <FaChalkboardTeacher size={16} />,
         badge: 5,
         children: [
-            { label: 'All mentors', href: '/mentors/all' },
-            { label: 'Add mentor', href: '/mentors/add' },
-            { label: 'By training center', href: '/mentors/training-center' },
-            { label: 'Pending applications', href: '/mentors/applications' },
+            { label: 'All mentors', href: '/mentors' },
+            { label: 'Add mentor', href: '/mentors/create-mentor' },
         ],
     },
     {

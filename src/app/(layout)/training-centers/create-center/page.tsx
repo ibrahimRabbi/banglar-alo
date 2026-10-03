@@ -68,7 +68,7 @@ export default function CreateCenterPage() {
                 setStatus('success')
                 form.resetFields()
                 setTimeout(() => setStatus('idle'), 2500)
-                
+
             }
 
         } catch (err: any) {
@@ -117,7 +117,7 @@ export default function CreateCenterPage() {
                                 className='!mb-0'
                                 rules={[{ required: true, message: 'Center name is required' }]}
                             >
-                            <Input readOnly prefix={<LuBuilding2 className='text-gray-400' />} />
+                                <Input readOnly prefix={<LuBuilding2 className='text-gray-400' />} />
                             </Form.Item>
                         </SectionCard>
 

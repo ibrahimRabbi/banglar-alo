@@ -25,10 +25,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <Wrapper>
-        <body className="min-h-full flex flex-col">{children}</body>
-        <Toaster/>
-      </Wrapper>
+
+      <body className="min-h-full flex flex-col">
+        <Wrapper>
+          {children}
+        </Wrapper>
+        <Toaster position="top-right" reverseOrder={false} />
+      </body>
     </html>
 
   );
