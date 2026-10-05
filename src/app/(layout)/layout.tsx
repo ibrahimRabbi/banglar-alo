@@ -63,10 +63,8 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Students',
         icon: <FaUserGraduate size={16} />,
         children: [
-            { label: 'All students', href: '/students/all' },
-            { label: 'Add student', href: '/students/add' },
-            { label: 'By training center', href: '/students/training-center' },
-            { label: 'Enrollments', href: '/students/enrollments' },
+            { label: 'All students', href: '/students' },
+            { label: 'Add student', href: '/students/create-student' },
             { label: 'Certificates', href: '/students/certificates' },
         ],
     },
