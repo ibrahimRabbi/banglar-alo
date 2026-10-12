@@ -11,6 +11,7 @@ import {
 import { FaChalkboardTeacher, FaUserGraduate } from 'react-icons/fa';
 import { CiSettings } from 'react-icons/ci';
 import Image from 'next/image';
+import { LuBuilding2 } from 'react-icons/lu';
 
 /* ─── types ─── */
 interface SubItem {
@@ -39,9 +40,20 @@ interface NavLink {
 /* ─── nav config ─── */
 const NAV_GROUPS: NavGroup[] = [
     {
+        key: 'courses',
+        label: 'Courses',
+        icon: <MdSchool size={17} />,
+        badge: 15,
+        children: [
+            { label: 'All courses', href: '/courses' },
+            { label: 'Add course', href: '/courses/create-course' },
+        ],
+    },
+   
+    {
         key: 'training-centers',
         label: 'Training Centers',
-        icon: <MdSchool size={17} />,
+        icon: <LuBuilding2 size={17} />,
         badge: 42,
         children: [
             { label: 'All centers', href: '/training-centers/all' },
@@ -76,6 +88,12 @@ const NAV_LINKS: NavLink[] = [
         label: 'Overview',
         href: '/',
         icon: <MdOutlineDashboardCustomize size={17} />,
+    },
+    {
+        key: 'enrollment',
+        label: 'Enrollment',
+        icon: <MdOutlineMailOutline size={17} />,
+        href: '/enrollment',
     },
 ];
 

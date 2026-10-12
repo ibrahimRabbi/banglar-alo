@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // Exclude: API routes, Next.js internal files, favicon, and auth page
-        '/((?!api|_next/static|_next/image|favicon.ico|auth).*)',
+         '/hello'
+        // '/((?!api|_next/static|_next/image|favicon.ico|auth).*)',
     ],
 };
