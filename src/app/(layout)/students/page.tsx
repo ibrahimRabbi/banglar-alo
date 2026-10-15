@@ -1,319 +1,505 @@
+
+
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { Table, Empty } from 'antd';
+import { useMemo, useState } from 'react';
+import {
+    Table,
+    Input,
+    Select,
+    Tag,
+    Button,
+    Typography,
+    ConfigProvider,
+    Space,
+    Tooltip,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { MdSchool, MdSearch } from 'react-icons/md';
-import { useGetAllStudentsQuery } from '@/redux/features/student/studentApi'; // <- adjust path
-import { useGetAllcenterQuery } from '@/redux/features/center/centerApi';
-import Image from 'next/image';
+import {
+    MdKeyboardArrowRight,
+    MdKeyboardArrowLeft,
+    MdPerson,
+} from 'react-icons/md';
+import { LuSearch, LuUsers } from 'react-icons/lu';
+import { Pencil, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
-/* =============================================================
-   TYPES
-============================================================= */
+import { useGetAllStudentsQuery } from '@/redux/features/student/studentApi';
 
-interface StudentCenter {
-    _id: string;
-    center_id: string;
-    center_name?: string;
-    division: string;
-    district: string;
-    sub_area: string;
-}
+const { Title, Text } = Typography;
 
-interface Student {
-    _id: string;
-    student_id: string;
-    course_id: { _id: string; course_name: string; course_code: number } | string | null;
-    batch_id: any;  
-    center_id: StudentCenter | string | null;
-    enrollment_date: string;
-    name: string;
-    image?: string;
+type Student = {
+    id: string;
+    fullName: string;
     email: string;
     phone: string;
+    profileImage: string;
+    role: string;
     status: string;
-}
-
-interface TCenter {
-    _id: string;
-    center_id: string;
-    center_name: string;
-    division: string;
-    district: string;
-    sub_area: string;
-}
-
-const PAGE_SIZE = 20;
-const avatarUrl = (seed: string) => `https://i.pravatar.cc/150?u=${seed}`;
-const getStudentImage = (s: Student) => s.image || avatarUrl(s._id);
-const getCenterKey = (s: Student) =>
-    s.center_id && typeof s.center_id === 'object' ? s.center_id._id : (s.center_id as string | null);
-const DUMMY_BATCH = 'Batch 01';
-const getBatchLabel = (s: Student) =>
-    s.batch_id && typeof s.batch_id === 'object' && s.batch_id.batch_name
-        ? s.batch_id.batch_name
-        : DUMMY_BATCH;
-
-const getCourseName = (s: Student) =>
-    s.course_id && typeof s.course_id === 'object' ? s.course_id.course_name : 'N/A';
-
-
-
-const statusStyles: Record<string, string> = {
-    active: 'bg-blue-50 text-blue-600',
-    enrolled: 'bg-blue-50 text-blue-600',
-    completed: 'bg-green-50 text-green-600',
-    dropped: 'bg-red-50 text-red-500',
-    inactive: 'bg-gray-100 text-gray-500',
+    location: string;
+    gender: string;
+    createdAt: string;
+    updatedAt: string;
 };
 
-function StatusPill({ status }: { status: string }) {
-    const key = (status || '').toLowerCase();
-    return (
-        <span
-            className={`inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${statusStyles[key] ?? 'bg-gray-100 text-gray-500'
-                }`}
-        >
-            {status || 'N/A'}
-        </span>
-    );
-}
+const PAGE_SIZE = 6;
 
- 
+const antdTheme = {
+    token: {
+        colorPrimary: '#111827',
+        colorBorder: '#e5e7eb',
+        borderRadius: 12,
+        controlHeight: 40,
+        fontSize: 13,
+        fontFamily: 'inherit',
+    },
+    components: {
+        Table: {
+            headerBg: '#f9fafb',
+            headerColor: '#9ca3af',
+            headerSplitColor: 'transparent',
+            borderColor: '#f3f4f6',
+            rowHoverBg: '#f9fafb',
+            cellPaddingBlock: 14,
+            cellPaddingInline: 16,
+        },
+        Input: {
+            activeShadow: '0 0 0 2px rgb(17 24 39 / 5%)',
+        },
+        Select: {
+            activeOutlineColor: 'rgb(17 24 39 / 5%)',
+        },
+        Pagination: {
+            itemActiveBg: '#111827',
+        },
+    },
+};
 
-function SearchBar({
-    value,
-    onChange,
-}: {
-    value: string;
-    onChange: (value: string) => void;
-}) {
-    return (
-        <div className="relative shrink-0 w-full sm:w-72">
-            <MdSearch
-                size={17}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-                type="text"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder="Search name, ID, email, phone, center..."
-                className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3.5 py-2.5 text-[12.5px] font-bold text-gray-700 placeholder:font-medium placeholder:text-gray-400 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-all"
-            />
-        </div>
-    );
-}
+const statusStyles: Record<string, { bg: string; dot: string }> = {
+    ACTIVE: {
+        bg: '!bg-green-50 !text-green-600',
+        dot: 'bg-green-500',
+    },
+    INACTIVE: {
+        bg: '!bg-gray-100 !text-gray-500',
+        dot: 'bg-gray-400',
+    },
+    SUSPENDED: {
+        bg: '!bg-red-50 !text-red-500',
+        dot: 'bg-red-400',
+    },
+};
 
+const formatLabel = (value: string) =>
+    (value || 'N/A')
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
 
+export default function StudentTable() {
+    const router = useRouter();
 
-function PageHeader({
-    title,
-    subtitle,
-    search,
-    onSearchChange,
-}: {
-    title: string;
-    subtitle: React.ReactNode;
-    search: string;
-    onSearchChange: (value: string) => void;
-}) {
-    return (
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-                <h1 className="text-[22px] font-extrabold text-gray-900 tracking-tight">{title}</h1>
-                <p className="text-[13px] text-gray-400 font-medium mt-1 flex items-center gap-1.5">
-                    {subtitle}
-                </p>
-            </div>
-            <SearchBar value={search} onChange={onSearchChange} />
-        </div>
-    );
-}
-
-
-
-const Page = () => {
     const [search, setSearch] = useState('');
-    const [current, setCurrent] = useState(1);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [deletedIds, setDeletedIds] = useState<string[]>([]);
 
-    const { data: studentData, isLoading: studentsLoading } = useGetAllStudentsQuery({});
-    const { data: centerData, isLoading: centersLoading } = useGetAllcenterQuery({});
+    const {
+        data: studentResponse,
+        isLoading,
+        refetch,
+    } = useGetAllStudentsQuery({});
 
-    const students: Student[] = useMemo(() => studentData?.data ?? [], [studentData]);
-    const centers: TCenter[] = useMemo(() => centerData?.data ?? [], [centerData]);
+    const students: Student[] = useMemo(
+        () =>
+            (studentResponse?.data ?? []).filter(
+                (student: Student) => !deletedIds.includes(student.id),
+            ),
+        [studentResponse, deletedIds],
+    );
 
-    const centerById = useMemo(() => {
-        const map = new Map<string, TCenter>();
-        centers.forEach((c) => map.set(c._id, c));
-        return map;
-    }, [centers]);
+    const statuses = useMemo(
+        () => [
+            ...new Set(
+                students
+                    .map((student) => student.status)
+                    .filter(Boolean),
+            ),
+        ],
+        [students],
+    );
 
-    // center name + center_id for a student
-    const getCenterInfo = (s: Student) => {
-        const key = getCenterKey(s);
-        const full = key ? centerById.get(key) : undefined;
-        const populated = s.center_id && typeof s.center_id === 'object' ? s.center_id : undefined;
-        const info = full ?? populated;
-        if (!info) return null;
-        return {
-            name: full?.center_name ?? populated?.center_name ?? 'Training Center',
-            eiin: info.center_id,
-            sub_area: info.sub_area,
-            district: info.district,
-        };
+    const filteredStudents = useMemo(() => {
+        const query = search.trim().toLowerCase();
+
+        return students.filter((student) => {
+            const matchesSearch =
+                !query ||
+                [
+                    student.fullName,
+                    student.email,
+                    student.phone,
+                    student.role,
+                    student.id,
+                    student.location,
+                ]
+                    .filter(Boolean)
+                    .some((value) =>
+                        String(value).toLowerCase().includes(query),
+                    );
+
+            const matchesStatus =
+                statusFilter === 'all' ||
+                student.status === statusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [students, search, statusFilter]);
+
+    const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
+    const safePage = Math.min(currentPage, Math.max(totalPages, 1));
+
+    const paginatedStudents = useMemo(() => {
+        const start = (safePage - 1) * PAGE_SIZE;
+
+        return filteredStudents.slice(start, start + PAGE_SIZE);
+    }, [filteredStudents, safePage]);
+
+    const handleEdit = (student: Student) => {
+        router.push(
+            `/ students / update - student ? studentId = ${ student.id } `,
+        );
     };
 
-    // search by name, student id, email, phone, course, center name / id
-    const filteredStudents = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        if (!q) return students;
-
-        return students.filter((s) => {
-            const center = getCenterInfo(s);
-            return [
-                s.name,
-                s.student_id,
-                s.email,
-                s.phone,
-                getCourseName(s),
-                center?.name,
-                center?.eiin,
-            ]
-                .filter(Boolean)
-                .some((v) => String(v).toLowerCase().includes(q));
+    // UI-only delete for now. Connect your delete API here later.
+    const handleDelete = async (student: Student) => {
+        const result = await Swal.fire({
+            title: 'Remove this student?',
+            html: `< b > ${ student.fullName }</ > will be removed from this table.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            reverseButtons: true,
+            focusCancel: true,
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [students, search, centerById]);
 
-    const handleSearch = (value: string) => {
-        setSearch(value);
-        setCurrent(1); // go back to the first page when searching
+        if (result.isConfirmed) {
+            setDeletedIds((previous) => [...previous, student.id]);
+
+            await Swal.fire({
+                title: 'Removed!',
+                text: `${ student.fullName } was removed from this view.`,
+                icon: 'success',
+                timer: 1400,
+                showConfirmButton: false,
+            });
+        }
     };
 
     const columns: ColumnsType<Student> = [
         {
             title: 'Student',
             key: 'student',
-            render: (_, s) => (
-                <div className="flex items-center gap-3">
-                     
-                    <Image
-                        width={36}
-                        height={36}
-                        preload
-                        src={getStudentImage(s)}
-                        alt={s.name}
-                        className="w-9 h-9 rounded-xl object-cover shrink-0 border border-gray-100"
-                    />
-                    <div>
-                        <p className="text-[13px] font-bold text-gray-900 whitespace-nowrap">{s.name}</p>
-                        <p className="text-[11px] text-gray-400 font-medium whitespace-nowrap mt-0.5">
-                            {s.student_id}
+            width: 260,
+            render: (_, student) => (
+                <Space size={12}>
+                    {student.profileImage?.trim() ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={student.profileImage}
+                            alt={student.fullName || 'Student'}
+                            className="h-9 w-9 shrink-0 rounded-xl border border-gray-100 object-cover"
+                        />
+                    ) : (
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
+                            <MdPerson size={21} />
+                        </span>
+                    )}
+
+                    <div className="min-w-0">
+                        <Tooltip title={student.fullName}>
+                            <p className="max-w-[200px] truncate text-[13px] font-bold text-gray-900">
+                                {student.fullName || 'Unnamed Student'}
+                            </p>
+                        </Tooltip>
+
+                        <p className="mt-0.5 max-w-[200px] truncate text-[11px] font-medium text-gray-400">
+                            {student.id}
                         </p>
                     </div>
-                </div>
+                </Space>
             ),
         },
         {
             title: 'Contact',
             key: 'contact',
-            render: (_, s) => (
+            width: 230,
+            render: (_, student) => (
                 <div>
-                    <p className="text-[12px] text-gray-600 font-medium whitespace-nowrap">{s.email}</p>
-                    <p className="text-[11.5px] text-gray-400 font-medium whitespace-nowrap">{s.phone}</p>
+                    <p className="whitespace-nowrap text-[12px] font-medium text-gray-700">
+                        {student.email || 'No email'}
+                    </p>
+                    <p className="mt-0.5 whitespace-nowrap text-[11px] font-medium text-gray-400">
+                        {student.phone || 'No phone'}
+                    </p>
                 </div>
             ),
         },
         {
-            title: 'Course',
-            key: 'course',
-            render: (_, s) => (
-                <span className="text-[12.5px] text-gray-700 font-medium whitespace-nowrap">
-                    {getCourseName(s)}
+            title: 'Role',
+            dataIndex: 'role',
+            key: 'role',
+            width: 110,
+            render: (role: string) => (
+                <span className="inline-block whitespace-nowrap rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1 text-[12px] font-bold text-gray-500">
+                    {formatLabel(role)}
                 </span>
             ),
         },
         {
-            title: 'Batch',
-            key: 'batch',
-            render: (_, s) => (
-                <span className="text-[12.5px] text-gray-500 font-medium whitespace-nowrap">
-                    {getBatchLabel(s)}
+            title: 'Gender',
+            dataIndex: 'gender',
+            key: 'gender',
+            width: 100,
+            render: (gender: string) => (
+                <Text className="!text-[12px] !text-gray-600">
+                    {gender || 'N/A'}
+                </Text>
+            ),
+        },
+        {
+            title: 'Location',
+            dataIndex: 'location',
+            key: 'location',
+            width: 160,
+            render: (location: string) => (
+                <span className="text-[12px] font-medium text-gray-500">
+                    {location || 'Not provided'}
                 </span>
             ),
         },
         {
-            title: 'Training Center',
-            key: 'center',
-            render: (_, s) => {
-                const info = getCenterInfo(s);
-                if (!info) return <span className="text-[12px] text-gray-400">Unassigned</span>;
+            title: 'Status',
+            dataIndex: 'status',
+            key: 'status',
+            width: 130,
+            render: (status: string) => {
+                const style = statusStyles[status] ?? {
+                    bg: '!bg-gray-100 !text-gray-500',
+                    dot: 'bg-gray-400',
+                };
 
                 return (
-                    <div className="flex items-center gap-1.5">
-                        <MdSchool size={13} className="text-gray-400 shrink-0" />
-                        <div>
-                            <p className="text-[12px] font-bold text-gray-800 whitespace-nowrap">
-                                BAIT - ({info.eiin})
-                            </p>
-                            <p className="text-[11px] text-gray-400 font-medium whitespace-nowrap capitalize">
-                                {info.sub_area}, {info.district}
-                            </p>
-                        </div>
-                    </div>
+                    <Tag
+                        bordered={false}
+                        className={`!mr - 0!rounded - full!px - 2.5!py - 1!text - [11px]!font - bold ${ style.bg } `}
+                    >
+                        <span className="inline-flex items-center gap-1.5">
+                            <span
+                                className={`h - 1.5 w - 1.5 rounded - full ${ style.dot } `}
+                            />
+                            {formatLabel(status)}
+                        </span>
+                    </Tag>
                 );
             },
         },
-        
         {
-            title: 'Status',
-            key: 'status',
-            render: (_, s) => <StatusPill status={s.status} />,
+            title: 'Action',
+            key: 'action',
+            width: 110,
+            align: 'center',
+            render: (_, student) => (
+                <Space size={6}>
+                    <Tooltip title="Edit student">
+                        <Button
+                            type="text"
+                            aria-label={`Edit ${ student.fullName } `}
+                            icon={<Pencil size={16} />}
+                            onClick={() => handleEdit(student)}
+                            className="!flex !h-9 !w-9 !items-center !justify-center !rounded-lg !text-gray-500 hover:!bg-blue-50 hover:!text-blue-600"
+                        />
+                    </Tooltip>
+
+                    <Tooltip title="Remove student from view">
+                        <Button
+                            type="text"
+                            danger
+                            aria-label={`Remove ${ student.fullName } `}
+                            icon={<Trash2 size={16} />}
+                            onClick={() => handleDelete(student)}
+                            className="!flex !h-9 !w-9 !items-center !justify-center !rounded-lg hover:!bg-red-50"
+                        />
+                    </Tooltip>
+                </Space>
+            ),
         },
     ];
 
     return (
-        <div className="min-h-screen w-[95%] py-10">
-            <PageHeader
-                title="Students"
-                subtitle={`${filteredStudents.length} student${filteredStudents.length !== 1 ? 's' : ''}${search ? ' found' : ''
-                    }`}
-                search={search}
-                onSearchChange={handleSearch}
-            />
+        <ConfigProvider theme={antdTheme}>
+            <div className="w-[95%] space-y-5">
+                {/* Header */}
+                <div className="my-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                    <div>
+                        <Title
+                            level={1}
+                            className="!mb-1 !text-[22px] !font-extrabold !tracking-tight !text-gray-900"
+                        >
+                            All Students
+                        </Title>
 
-            <div className="bg-white border border-gray-100 rounded-lg overflow-hidden">
-                <Table<Student>
-                    rowKey="_id"
-                    columns={columns}
-                    dataSource={filteredStudents}
-                    loading={studentsLoading || centersLoading}
-                    scroll={{ x: 'max-content' }}
-                    locale={{
-                        emptyText: (
-                            <Empty
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                description={search ? 'No students match your search' : 'No students found'}
-                            />
-                        ),
-                    }}
-                    pagination={
-                        filteredStudents.length > PAGE_SIZE
-                            ? {
-                                current,
-                                pageSize: PAGE_SIZE,
-                                showSizeChanger: false,
-                                position: ['bottomCenter'],
-                                onChange: (page) => setCurrent(page),
+                        <Text className="!text-[13px] !font-medium !text-gray-400">
+                            Manage student profiles and account status
+                        </Text>
+                    </div>
+
+                    <span className="self-start rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-[11px] font-bold text-gray-500 sm:self-auto">
+                        {filteredStudents.length} student
+                        {filteredStudents.length !== 1 ? 's' : ''} found
+                    </span>
+                </div>
+
+                {/* Search and Filters */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                    <div className="flex flex-col gap-3 md:flex-row">
+                        <Input
+                            prefix={
+                                <LuSearch
+                                    className="text-gray-400"
+                                    size={16}
+                                />
                             }
-                            : false
-                    }
-                />
-            </div>
-        </div>
-    );
-};
+                            value={search}
+                            onChange={(event) => {
+                                setSearch(event.target.value);
+                                setCurrentPage(1);
+                            }}
+                            placeholder="Search name, email, phone or ID..."
+                            allowClear
+                            className="!flex-1"
+                        />
 
-export default Page;
+                        <Select
+                            value={statusFilter}
+                            onChange={(value) => {
+                                setStatusFilter(value);
+                                setCurrentPage(1);
+                            }}
+                            className="w-full md:!w-[180px]"
+                            options={[
+                                { value: 'all', label: 'All Statuses' },
+                                ...statuses.map((status) => ({
+                                    value: status,
+                                    label: formatLabel(status),
+                                })),
+                            ]}
+                        />
+                    </div>
+                </div>
+
+                {/* Student Table */}
+                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+                    <Table<Student>
+                        rowKey="id"
+                        columns={columns}
+                        dataSource={paginatedStudents}
+                        loading={isLoading}
+                        pagination={false}
+                        size="middle"
+                        scroll={{ x: 'max-content' }}
+                        locale={{
+                            emptyText: (
+                                <div className="py-8">
+                                    <LuUsers
+                                        size={24}
+                                        className="mx-auto mb-2 text-gray-300"
+                                    />
+                                    <p className="text-[13px] font-semibold text-gray-500">
+                                        No students found
+                                    </p>
+                                    <p className="mt-1 text-[12px] text-gray-400">
+                                        Try changing your search or status filter.
+                                    </p>
+                                </div>
+                            ),
+                        }}
+                    />
+
+                    {/* Footer and Pagination */}
+                    <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-100 px-5 py-3.5 sm:flex-row">
+                        <p className="text-[11.5px] font-medium text-gray-400">
+                            Showing{' '}
+                            <span className="font-bold text-gray-700">
+                                {filteredStudents.length === 0
+                                    ? 0
+                                    : (safePage - 1) * PAGE_SIZE + 1}
+                                –
+                                {Math.min(
+                                    safePage * PAGE_SIZE,
+                                    filteredStudents.length,
+                                )}
+                            </span>{' '}
+                            of{' '}
+                            <span className="font-bold text-gray-700">
+                                {filteredStudents.length}
+                            </span>{' '}
+                            students
+                        </p>
+
+                        <div className="flex items-center gap-1.5">
+                            <Button
+                                aria-label="Previous page"
+                                icon={<MdKeyboardArrowLeft size={18} />}
+                                disabled={safePage <= 1}
+                                onClick={() =>
+                                    setCurrentPage((page) => page - 1)
+                                }
+                                className="!flex !h-8 !w-8 !items-center !justify-center !rounded-lg"
+                            />
+
+                            {Array.from(
+                                { length: totalPages },
+                                (_, index) => index + 1,
+                            ).map((page) => (
+                                <Button
+                                    key={page}
+                                    type={
+                                        safePage === page
+                                            ? 'primary'
+                                            : 'default'
+                                    }
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`!h - 8!w - 8!rounded - lg!text - [12px]!font - bold ${
+    safePage === page
+        ? '!border-gray-900 !bg-gray-900'
+        : '!border-gray-200 !text-gray-500'
+} `}
+                                >
+                                    {page}
+                                </Button>
+                            ))}
+
+                            <Button
+                                aria-label="Next page"
+                                icon={<MdKeyboardArrowRight size={18} />}
+                                disabled={
+                                    totalPages === 0 ||
+                                    safePage >= totalPages
+                                }
+                                onClick={() =>
+                                    setCurrentPage((page) => page + 1)
+                                }
+                                className="!flex !h-8 !w-8 !items-center !justify-center !rounded-lg"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ConfigProvider>
+    );
+}

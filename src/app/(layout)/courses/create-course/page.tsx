@@ -30,9 +30,7 @@ import { useGetAllMentorsQuery } from '@/redux/features/mentor/mentorApi';
 
 const { TextArea } = Input;
 
-/* =============================================================
-   TYPES & CONFIG
-============================================================= */
+ 
 
 type Teacher = {
     id: string;
@@ -61,7 +59,7 @@ type FormValues = {
 
 type Status = 'idle' | 'saving' | 'success' | 'error';
 
-// Backend date format, e.g. "15-10-26"
+ 
 const API_DATE = 'DD-MM-YY';
 
 const antdTheme = {
@@ -93,9 +91,7 @@ const classTypeOptions = [
     { value: 'LIVE', label: 'Live' },
 ];
 
-/* =============================================================
-   PAGE
-============================================================= */
+ 
 
 export default function CreateCoursePage() {
     const [form] = Form.useForm<FormValues>();
@@ -123,7 +119,6 @@ export default function CreateCoursePage() {
     );
 
     /* ---------- SUBMIT ---------- */
-
     const onFinish = async (values: FormValues) => {
         setErrorList([]);
         setErrorMsg('');
@@ -197,7 +192,7 @@ export default function CreateCoursePage() {
 
     const saving = status === 'saving';
 
-    /* ---------- RENDER ---------- */
+   
 
     return (
         <ConfigProvider theme={antdTheme}>

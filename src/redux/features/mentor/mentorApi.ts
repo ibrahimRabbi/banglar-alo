@@ -12,14 +12,14 @@ export const mentorApi = baseApi.injectEndpoints({
 
         getMentorById: builder.query({
             query: (mentorId) => ({
-                url: `/mentor/get-mentor/${mentorId}`,
+                url: `/users/directory/${mentorId}`,
                 method: "GET",
             }),
         }),
 
         createMentor: builder.mutation({
             query: (mentorData) => ({
-                url: "/mentor/create-mentor",
+                url: "/users/directory",
                 method: "POST",
                 body: mentorData,
             }),

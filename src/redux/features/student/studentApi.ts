@@ -5,7 +5,7 @@ export const studentApi = baseApi.injectEndpoints({
 
         getAllStudents: builder.query({
             query: () => ({
-                url: "/student/get-all-student",
+                url: "/users/directory?role=Student",
                 method: "GET",
             }),
         }),
