@@ -6,13 +6,45 @@ export const courseApi = baseApi.injectEndpoints({
 
         getAllCourses: builder.query({
             query: () => ({
-                url: "/course/get-all-course",
+                url: "/courses",
                 method: "GET",
             }),
+        }),
+
+        getCourseById: builder.query({
+            query: (id) => ({
+                url: `/courses/${id}`,
+                method: "GET",
+            }),
+        }),
+
+        updateCourse: builder.mutation({
+            query: ({id, data}) => ({
+                url: `/courses/${id}`,
+                method: "PUT",
+                body: data,
+            }),
+        }),
+
+        deleteCourse: builder.mutation({
+            query: (id) => ({
+                url: `/courses/${id}`,
+                method: "DELETE",
+            }),
+        }),
+
+        createCourse: builder.mutation({
+            query: (data) => {
+                return {
+                    url: '/courses',
+                    method: 'POST',
+                    body : data
+                }
+            }
         })
 
          
     })
 })
 
-export const {useGetAllCoursesQuery} = courseApi
+export const {useGetAllCoursesQuery, useGetCourseByIdQuery, useUpdateCourseMutation, useDeleteCourseMutation, useCreateCourseMutation} = courseApi

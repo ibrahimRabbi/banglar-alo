@@ -14,7 +14,6 @@ export async function middleware(request: NextRequest) {
 
     // Verify token with your admin function
     const myProfile = await admin(token);
-
     if (myProfile?.data) {
         return NextResponse.next(); // authenticated, proceed
     } else {
@@ -27,7 +26,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-         '/hello'
-        // '/((?!api|_next/static|_next/image|favicon.ico|auth).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|auth).*)',
     ],
 };

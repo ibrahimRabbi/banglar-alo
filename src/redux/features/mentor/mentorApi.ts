@@ -5,7 +5,7 @@ export const mentorApi = baseApi.injectEndpoints({
 
         getAllMentors: builder.query({
             query: () => ({
-                url: "/mentor/get-all-mentors",
+                url: "/users/directory?role=Teacher",
                 method: "GET",
             }),
         }),

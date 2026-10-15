@@ -1,25 +1,9 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-    Table,
-    Input,
-    Select,
-    Tag,
-    Button,
-    Typography,
-    ConfigProvider,
-    Space,
-} from 'antd';
+import {Table,Input,Select,Tag,Button,Typography,ConfigProvider,Space} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import {
-    MdKeyboardArrowRight,
-    MdKeyboardArrowLeft,
-    MdPerson,
-    MdSchool,
-    MdCalendarMonth,
-} from 'react-icons/md';
+import {MdKeyboardArrowRight,MdKeyboardArrowLeft,MdPerson,MdSchool,MdCalendarMonth,} from 'react-icons/md';
 import { LuBookOpen, LuSearch } from 'react-icons/lu';
 
 const { Title, Text } = Typography;
@@ -158,11 +142,9 @@ const EnrollmentTable = () => {
     const [courseFilter, setCourseFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
 
-    const courses = useMemo(
-        () =>
-            [...new Set(fakeEnrollments.map((item) => item.course_name))].sort(),
-        [],
-    );
+    const courses = useMemo(() =>
+        [...new Set(fakeEnrollments.map((item) => item.course_name))].sort(),
+        [],);
 
     const filteredEnrollments = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -303,8 +285,7 @@ const EnrollmentTable = () => {
                     <div>
                         <Title
                             level={1}
-                            className="!text-[22px] !font-extrabold !text-gray-900 !tracking-tight !mb-1"
-                        >
+                            className="!text-[22px] !font-extrabold !text-gray-900 !tracking-tight !mb-1">
                             All Enrollments
                         </Title>
 
@@ -506,8 +487,8 @@ const EnrollmentTable = () => {
                                     }
                                     onClick={() => setCurrentPage(page)}
                                     className={`!w - 8!h - 8!rounded - lg!text - [12px]!font - bold ${safePage === page
-                                            ? '!bg-gray-900 !border-gray-900'
-                                            : '!text-gray-500 !border-gray-200'
+                                        ? '!bg-gray-900 !border-gray-900'
+                                        : '!text-gray-500 !border-gray-200'
                                         } `}
                                 >
                                     {page}

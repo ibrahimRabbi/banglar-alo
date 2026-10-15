@@ -8,7 +8,7 @@ export const baseApi = createApi({
         credentials: 'include',
         prepareHeaders: (headers) => {
             const token = getCookie('token')
-            headers.set('Authorization', `Bearer ${token}`)
+            headers.set('Authorization', `${token}`)
             return headers
         }
     }),

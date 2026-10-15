@@ -2,12 +2,12 @@ import { cookies } from "next/headers"
 
 const admin = async (token: string) => {
 
-
-    const fetching = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/get-admin-profile`, {
+    const fetching = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/profile`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `${token}` }
     })
     const response = await fetching.json()
+    
     return response
 }
 

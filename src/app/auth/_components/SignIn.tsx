@@ -23,13 +23,13 @@ const SignInForm = () => {
     const signInhandler = async (value: any) => {
         try {
             const login = await signIn(value).unwrap()
-            if (login?.token) {
+            if (login?.data?.token) {
                 toast.success('Sign-In Successfully')
-                setCookie('token', login.token, {
+                setCookie('token', login.data.token, {
                     maxAge: 7 * 24 * 60 * 60,
                     path: '/'
                 })
-                router.push(redirect)
+                router.push('/')
             }
         } catch (error: any) {
             toast.error(error?.data?.message || 'something went wrong')
@@ -87,7 +87,7 @@ const SignInForm = () => {
                             control={control}
                             rules={{
                                 required: 'password is required',
-                                minLength: { value: 8, message: 'password minimum 8 characters' },
+                                minLength: { value: 4, message: 'password minimum 4 characters' },
                             }}
                             render={({ field }) => (
                                 <Input.Password

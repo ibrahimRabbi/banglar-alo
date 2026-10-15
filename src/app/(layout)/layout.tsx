@@ -3,15 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import {
-    MdOutlineDashboardCustomize,
-    MdOutlineMailOutline,
-    MdSchool,
-} from 'react-icons/md';
-import { FaChalkboardTeacher, FaUserGraduate } from 'react-icons/fa';
+import { MdOutlineDashboardCustomize, MdOutlineMailOutline, MdSchool,} from 'react-icons/md';
+import { FaChalkboardTeacher, FaRegCalendarAlt, FaUserGraduate } from 'react-icons/fa';
 import { CiSettings } from 'react-icons/ci';
 import Image from 'next/image';
 import { LuBuilding2 } from 'react-icons/lu';
+import { AiOutlineFolderOpen } from 'react-icons/ai';
 
 /* ─── types ─── */
 interface SubItem {
@@ -49,7 +46,6 @@ const NAV_GROUPS: NavGroup[] = [
             { label: 'Add course', href: '/courses/create-course' },
         ],
     },
-   
     {
         key: 'training-centers',
         label: 'Training Centers',
@@ -58,6 +54,15 @@ const NAV_GROUPS: NavGroup[] = [
         children: [
             { label: 'All centers', href: '/training-centers/all' },
             { label: 'Add center', href: '/training-centers/create-center' },
+        ],
+    },
+    {
+        key: 'batches',
+        label: 'Batches',
+        icon: <FaRegCalendarAlt size={17} />,
+        children: [
+            { label: 'All batches', href: '/batches' },
+            { label: 'Add batch', href: '/batches/create-batch' },
         ],
     },
     {
@@ -78,6 +83,17 @@ const NAV_GROUPS: NavGroup[] = [
             { label: 'All students', href: '/students' },
             { label: 'Add student', href: '/students/create-student' },
             { label: 'Certificates', href: '/students/certificates' },
+        ],
+    },
+    {
+        key: 'projects',
+        label: 'Projects',
+        icon: <AiOutlineFolderOpen size={16} />,
+        badge: 5,
+        children: [
+            { label: 'Quotations', href: '/projects/quotation' },
+            { label: 'All projects', href: '/projects' },
+            { label: 'Add project', href: '/projects/create' },
         ],
     },
 ];

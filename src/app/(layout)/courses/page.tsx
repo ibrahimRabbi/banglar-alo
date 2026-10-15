@@ -22,100 +22,33 @@ import {
 } from 'react-icons/md';
 import { LuBookOpen, LuSearch } from 'react-icons/lu';
 import { Pencil, Trash2 } from 'lucide-react';
+import { useDeleteCourseMutation, useGetAllCoursesQuery } from '@/redux/features/course/courseApi';
+import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 const { Title, Text } = Typography;
 
 type Course = {
     id: string;
-    course_code: number;
-    course_name: string;
+    title: string;
+    batch: string;
+    slug: string;
     category: string;
+    description: string;
+    thumbnail: string;
+    status: string; // UPCOMING, IN_PROGRESS, COMPLETED ...
+    classType: string; // ONLINE, OFFLINE ...
+    enrollmentStartDate: string;
+    enrollmentEndDate: string;
+    classStartDate: string;
+    classDuration: string;
+    venue: string;
+    capacity: number;
     price: number;
-    status: 'active' | 'inactive';
+    enrolledCount: number;
+    seatsLeft: number;
+    createdAt: string;
 };
-
-const initialCourses: Course[] = [
-    {
-        id: '1',
-        course_code: 100001,
-        course_name: 'Web Development',
-        category: 'Programming',
-        price: 15000,
-        status: 'active',
-    },
-    {
-        id: '2',
-        course_code: 100002,
-        course_name: 'Graphic Design',
-        category: 'Design',
-        price: 12000,
-        status: 'active',
-    },
-    {
-        id: '3',
-        course_code: 100003,
-        course_name: 'Digital Marketing',
-        category: 'Marketing',
-        price: 10000,
-        status: 'active',
-    },
-    {
-        id: '4',
-        course_code: 100004,
-        course_name: 'Motion Graphics',
-        category: 'Design',
-        price: 14000,
-        status: 'inactive',
-    },
-    {
-        id: '5',
-        course_code: 100005,
-        course_name: 'Data Analysis',
-        category: 'Data & Analytics',
-        price: 16000,
-        status: 'active',
-    },
-    {
-        id: '6',
-        course_code: 100006,
-        course_name: 'UI/UX Design',
-        category: 'Design',
-        price: 11000,
-        status: 'active',
-    },
-    {
-        id: '7',
-        course_code: 100007,
-        course_name: 'Python Programming',
-        category: 'Programming',
-        price: 9000,
-        status: 'inactive',
-    },
-    {
-        id: '8',
-        course_code: 100008,
-        course_name: 'Computer Office Application',
-        category: 'Office Applications',
-        price: 6000,
-        status: 'active',
-    },
-    {
-        id: '9',
-        course_code: 100009,
-        course_name: 'Cyber Security',
-        category: 'IT & Networking',
-        price: 18000,
-        status: 'active',
-    },
-    {
-        id: '10',
-        course_code: 100010,
-        course_name: 'Database Management',
-        category: 'Programming',
-        price: 13000,
-        status: 'inactive',
-    },
-];
 
 const PAGE_SIZE = 6;
 
@@ -150,17 +83,48 @@ const antdTheme = {
     },
 };
 
+// status pill colors (unknown status falls back to gray)
+const statusStyles: Record<string, { bg: string; dot: string }> = {
+    UPCOMING: { bg: '!bg-blue-50 !text-blue-600', dot: 'bg-blue-500' },
+    IN_PROGRESS: { bg: '!bg-emerald-50 !text-emerald-600', dot: 'bg-emerald-500' },
+    LIVE: { bg: '!bg-emerald-50 !text-emerald-600', dot: 'bg-emerald-500' },
+    COMPLETED: { bg: '!bg-gray-100 !text-gray-500', dot: 'bg-gray-400' },
+    CANCELLED: { bg: '!bg-red-50 !text-red-500', dot: 'bg-red-400' },
+};
+
+// UPCOMING -> Upcoming, IN_PROGRESS -> In Progress
+const formatLabel = (s: string) =>
+    (s || '')
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
 const CourseTable = () => {
-    const [courses, setCourses] = useState<Course[]>(initialCourses);
+    const [deletedIds, setDeletedIds] = useState<string[]>([]);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [messageApi, contextHolder] = message.useMessage();
+    const router = useRouter();
+    const { data: allCourses, isLoading, refetch } = useGetAllCoursesQuery({});
+    const [deleteCourse] = useDeleteCourseMutation();
+
+    const courses: Course[] = useMemo(
+        () =>
+            (allCourses?.data ?? []).filter(
+                (c: Course) => !deletedIds.includes(c.id),
+            ),
+        [allCourses, deletedIds],
+    );
 
     const categories = useMemo(
-        () =>
-            [...new Set(courses.map((course) => course.category))].sort(),
+        () => [...new Set(courses.map((c) => c.category).filter(Boolean))].sort(),
+        [courses],
+    );
+
+    const statuses = useMemo(
+        () => [...new Set(courses.map((c) => c.status).filter(Boolean))],
         [courses],
     );
 
@@ -169,16 +133,16 @@ const CourseTable = () => {
 
         return courses.filter((course) => {
             const matchesSearch =
-                course.course_name.toLowerCase().includes(query) ||
-                String(course.course_code).includes(query) ||
-                course.category.toLowerCase().includes(query);
+                !query ||
+                [course.title, course.batch, course.category, course.slug]
+                    .filter(Boolean)
+                    .some((v) => v.toLowerCase().includes(query));
 
             const matchesStatus =
                 statusFilter === 'all' || course.status === statusFilter;
 
             const matchesCategory =
-                categoryFilter === 'all' ||
-                course.category === categoryFilter;
+                categoryFilter === 'all' || course.category === categoryFilter;
 
             return matchesSearch && matchesStatus && matchesCategory;
         });
@@ -193,74 +157,141 @@ const CourseTable = () => {
     }, [filteredCourses, safePage]);
 
     const handleEdit = (course: Course) => {
-        // Connect your edit modal or edit page here.
-        messageApi.info(`Edit course: ${ course.course_name } `);
+        router.push('/courses/update-course?courseId=' + course.id);
     };
 
-    const handleDelete = (course: Course) => {
-        setCourses((previousCourses) =>
-            previousCourses.filter((item) => item.id !== course.id),
-        );
 
-        messageApi.success(`${ course.course_name } deleted successfully`);
-
-        setCurrentPage((page) => {
-            const remaining = filteredCourses.length - 1;
-            return Math.max(1, Math.min(page, Math.ceil(remaining / PAGE_SIZE) || 1));
+    const handleDelete = async (course: Course) => {
+        const result = await Swal.fire({
+            title: 'Delete this course?',
+            html: `<b>${course.title}</b> (${course.batch}) will be deleted. This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            reverseButtons: true,
+            focusCancel: true,
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !Swal.isLoading(),
+            // confirm click korle dialog er bhitorei loader dekhay, API sesh hole bondho hoy
+            preConfirm: async () => {
+                try {
+                    return await deleteCourse(course.id).unwrap();
+                } catch (error: any) {
+                    Swal.showValidationMessage(
+                        error?.data?.message || 'Failed to delete course'
+                    );
+                }
+            },
         });
+
+        if (result.isConfirmed) {
+            refetch(); 
+            await Swal.fire({
+                title: 'Deleted!',
+                text: `${course.title} has been deleted.`,
+                icon: 'success',
+                timer: 1600,
+                showConfirmButton: false,
+            });
+        }
     };
+
 
     const columns: ColumnsType<Course> = [
         {
             title: 'Course',
-            dataIndex: 'course_name',
-            key: 'course_name',
-            width: 240,
+            dataIndex: 'title',
+            key: 'title',
+            width: 280,
             render: (_, course) => (
                 <Space size={12}>
-                    <span className="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0">
-                        <MdSchool size={16} />
-                    </span>
+                    {course.thumbnail ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={course.thumbnail}
+                            alt={course.title}
+                            className="w-9 h-9 rounded-xl object-cover shrink-0 border border-gray-100"
+                        />
+                    ) : (
+                        <span className="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0">
+                            <MdSchool size={16} />
+                        </span>
+                    )}
 
-                    <Text
-                        strong
-                        className="!text-[13px] !text-gray-900 whitespace-nowrap"
-                    >
-                        {course.course_name}
-                    </Text>
+                    <div className="min-w-0">
+                        <Tooltip title={course.title}>
+                            <p className="text-[13px] font-bold text-gray-900 max-w-[210px] truncate">
+                                {course.title}
+                            </p>
+                        </Tooltip>
+                        <p className="text-[11px] text-gray-400 font-medium mt-0.5 whitespace-nowrap">
+                            {course.batch}
+                        </p>
+                    </div>
                 </Space>
-            ),
-        },
-        {
-            title: 'Course Code',
-            dataIndex: 'course_code',
-            key: 'course_code',
-            width: 130,
-            render: (code: number) => (
-                <span className="inline-block text-[12px] font-bold text-gray-500 bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-full whitespace-nowrap">
-                    {code}
-                </span>
             ),
         },
         {
             title: 'Category',
             dataIndex: 'category',
             key: 'category',
-            width: 160,
+            width: 190,
             render: (category: string) => (
-                <Text className="!text-[12px] !text-gray-600 whitespace-nowrap">
-                    {category}
-                </Text>
+                <Text className="!text-[12px] !text-gray-600">{category}</Text>
+            ),
+        },
+        {
+            title: 'Class Type',
+            dataIndex: 'classType',
+            key: 'classType',
+            width: 120,
+            render: (type: string) => (
+                <span className="inline-block text-[12px] font-bold text-gray-500 bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {formatLabel(type)}
+                </span>
+            ),
+        },
+        {
+            title: 'Class Start',
+            key: 'classStartDate',
+            width: 140,
+            render: (_, course) => (
+                <div>
+                    <p className="text-[12px] font-semibold text-gray-700 whitespace-nowrap">
+                        {course.classStartDate || 'N/A'}
+                    </p>
+                    <p className="text-[11px] text-gray-400 font-medium mt-0.5 whitespace-nowrap">
+                        {course.classDuration}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            title: 'Seats',
+            key: 'seats',
+            width: 110,
+            render: (_, course) => (
+                <div>
+                    <p className="text-[12px] font-bold text-gray-800 whitespace-nowrap">
+                        {course.enrolledCount} / {course.capacity}
+                    </p>
+                    <p className="text-[11px] text-gray-400 font-medium mt-0.5 whitespace-nowrap">
+                        {course.seatsLeft} left
+                    </p>
+                </div>
             ),
         },
         {
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            width: 120,
+            width: 110,
             render: (price: number) => (
                 <Text strong className="!text-[13px] !text-gray-800 whitespace-nowrap">
-                    ৳{price.toLocaleString('en-BD')}
+                    ৳{(price ?? 0).toLocaleString('en-BD')}
                 </Text>
             ),
         },
@@ -268,28 +299,24 @@ const CourseTable = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            width: 120,
-            render: (status: Course['status']) => (
-                <Tag
-                    bordered={false}
-                    className={`!rounded - full!px - 2.5!py - 1!text - [11px]!font - bold!mr - 0 ${
-    status === 'active'
-        ? '!bg-emerald-50 !text-emerald-600'
-        : '!bg-gray-100 !text-gray-500'
-} `}
-                >
-                    <span className="inline-flex items-center gap-1.5">
-                        <span
-                            className={`w - 1.5 h - 1.5 rounded - full ${
-    status === 'active'
-        ? 'bg-emerald-500'
-        : 'bg-gray-400'
-} `}
-                        />
-                        {status === 'active' ? 'Active' : 'Inactive'}
-                    </span>
-                </Tag>
-            ),
+            width: 130,
+            render: (status: string) => {
+                const style = statusStyles[status] ?? {
+                    bg: '!bg-gray-100 !text-gray-500',
+                    dot: 'bg-gray-400',
+                };
+                return (
+                    <Tag
+                        bordered={false}
+                        className={`!rounded-full !px-2.5 !py-1 !text-[11px] !font-bold !mr-0 ${style.bg}`}
+                    >
+                        <span className="inline-flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                            {formatLabel(status)}
+                        </span>
+                    </Tag>
+                );
+            },
         },
         {
             title: 'Action',
@@ -301,30 +328,20 @@ const CourseTable = () => {
                     <Tooltip title="Edit course">
                         <Button
                             type="text"
-                            aria-label={`Edit ${ course.course_name } `}
+                            aria-label={`Edit ${course.title}`}
                             icon={<Pencil size={16} />}
                             onClick={() => handleEdit(course)}
                             className="!w-9 !h-9 !flex !items-center !justify-center !rounded-lg !text-gray-500 hover:!text-blue-600 hover:!bg-blue-50"
                         />
                     </Tooltip>
-
                     <Tooltip title="Delete course">
-                        <Popconfirm
-                            title="Delete this course?"
-                            description={`Are you sure you want to delete ${ course.course_name }?`}
-                            onConfirm={() => handleDelete(course)}
-                            okText="Delete"
-                            cancelText="Cancel"
-                            okButtonProps={{ danger: true }}
-                        >
-                            <Button
-                                type="text"
-                                danger
-                                aria-label={`Delete ${ course.course_name } `}
-                                icon={<Trash2 size={16} />}
-                                className="!w-9 !h-9 !flex !items-center !justify-center !rounded-lg hover:!bg-red-50"
-                            />
-                        </Popconfirm>
+                        <Button
+                            type="text"
+                            danger
+                            onClick={() => handleDelete(course)}
+                            aria-label={`Delete ${course.title}`}
+                            icon={<Trash2 size={16} />}
+                            className="!w-9 !h-9 !flex !items-center !justify-center !rounded-lg hover:!bg-red-50"/>
                     </Tooltip>
                 </Space>
             ),
@@ -361,15 +378,13 @@ const CourseTable = () => {
                 <div className="bg-white border border-gray-100 rounded-2xl p-4">
                     <div className="flex flex-col md:flex-row gap-3">
                         <Input
-                            prefix={
-                                <LuSearch className="text-gray-400" size={16} />
-                            }
+                            prefix={<LuSearch className="text-gray-400" size={16} />}
                             value={search}
                             onChange={(event) => {
                                 setSearch(event.target.value);
                                 setCurrentPage(1);
                             }}
-                            placeholder="Search by course name, code or category..."
+                            placeholder="Search by course title, batch or category..."
                             allowClear
                             className="!flex-1"
                         />
@@ -380,7 +395,7 @@ const CourseTable = () => {
                                 setCategoryFilter(value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full md:!w-[180px]"
+                            className="w-full md:!w-[200px]"
                             options={[
                                 { value: 'all', label: 'All Categories' },
                                 ...categories.map((category) => ({
@@ -396,11 +411,13 @@ const CourseTable = () => {
                                 setStatusFilter(value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full md:!w-[150px]"
+                            className="w-full md:!w-[160px]"
                             options={[
                                 { value: 'all', label: 'All Statuses' },
-                                { value: 'active', label: 'Active' },
-                                { value: 'inactive', label: 'Inactive' },
+                                ...statuses.map((s) => ({
+                                    value: s,
+                                    label: formatLabel(s),
+                                })),
                             ]}
                         />
                     </div>
@@ -412,9 +429,10 @@ const CourseTable = () => {
                         rowKey="id"
                         columns={columns}
                         dataSource={paginatedCourses}
+                        loading={isLoading}
                         pagination={false}
                         size="middle"
-                        tableLayout="fixed"
+                        scroll={{ x: 'max-content' }}
                         locale={{
                             emptyText: (
                                 <div className="py-8">
@@ -441,11 +459,7 @@ const CourseTable = () => {
                                 {filteredCourses.length === 0
                                     ? 0
                                     : (safePage - 1) * PAGE_SIZE + 1}
-                                –
-                                {Math.min(
-                                    safePage * PAGE_SIZE,
-                                    filteredCourses.length,
-                                )}
+                                –{Math.min(safePage * PAGE_SIZE, filteredCourses.length)}
                             </span>{' '}
                             of{' '}
                             <span className="text-gray-700 font-bold">
@@ -459,43 +473,31 @@ const CourseTable = () => {
                                 aria-label="Previous page"
                                 icon={<MdKeyboardArrowLeft size={18} />}
                                 disabled={safePage <= 1}
-                                onClick={() =>
-                                    setCurrentPage((page) => page - 1)
-                                }
+                                onClick={() => setCurrentPage((page) => page - 1)}
                                 className="!w-8 !h-8 !flex !items-center !justify-center !rounded-lg"
                             />
 
-                            {Array.from(
-                                { length: totalPages },
-                                (_, index) => index + 1,
-                            ).map((page) => (
-                                <Button
-                                    key={page}
-                                    type={
-                                        safePage === page
-                                            ? 'primary'
-                                            : 'default'
-                                    }
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`!w - 8!h - 8!rounded - lg!text - [12px]!font - bold ${
-    safePage === page
-        ? '!bg-gray-900 !border-gray-900'
-        : '!text-gray-500 !border-gray-200'
-} `}
-                                >
-                                    {page}
-                                </Button>
-                            ))}
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                                (page) => (
+                                    <Button
+                                        key={page}
+                                        type={safePage === page ? 'primary' : 'default'}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`!w-8 !h-8 !rounded-lg !text-[12px] !font-bold ${safePage === page
+                                            ? '!bg-gray-900 !border-gray-900'
+                                            : '!text-gray-500 !border-gray-200'
+                                            }`}
+                                    >
+                                        {page}
+                                    </Button>
+                                ),
+                            )}
 
                             <Button
                                 aria-label="Next page"
                                 icon={<MdKeyboardArrowRight size={18} />}
-                                disabled={
-                                    totalPages === 0 || safePage >= totalPages
-                                }
-                                onClick={() =>
-                                    setCurrentPage((page) => page + 1)
-                                }
+                                disabled={totalPages === 0 || safePage >= totalPages}
+                                onClick={() => setCurrentPage((page) => page + 1)}
                                 className="!w-8 !h-8 !flex !items-center !justify-center !rounded-lg"
                             />
                         </div>
