@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -21,7 +19,7 @@ import {
     MdPerson,
 } from 'react-icons/md';
 import { LuSearch, LuUsers } from 'react-icons/lu';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Eye, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 
@@ -105,11 +103,7 @@ export default function StudentTable() {
     const [currentPage, setCurrentPage] = useState(1);
     const [deletedIds, setDeletedIds] = useState<string[]>([]);
 
-    const {
-        data: studentResponse,
-        isLoading,
-        refetch,
-    } = useGetAllStudentsQuery({});
+    const { data: studentResponse, isLoading } = useGetAllStudentsQuery({});
 
     const students: Student[] = useMemo(
         () =>
@@ -120,13 +114,7 @@ export default function StudentTable() {
     );
 
     const statuses = useMemo(
-        () => [
-            ...new Set(
-                students
-                    .map((student) => student.status)
-                    .filter(Boolean),
-            ),
-        ],
+        () => [...new Set(students.map((student) => student.status).filter(Boolean))],
         [students],
     );
 
@@ -140,18 +128,14 @@ export default function StudentTable() {
                     student.fullName,
                     student.email,
                     student.phone,
-                    student.role,
                     student.id,
-                    student.location,
+                    student.gender,
                 ]
                     .filter(Boolean)
-                    .some((value) =>
-                        String(value).toLowerCase().includes(query),
-                    );
+                    .some((value) => String(value).toLowerCase().includes(query));
 
             const matchesStatus =
-                statusFilter === 'all' ||
-                student.status === statusFilter;
+                statusFilter === 'all' || student.status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
@@ -162,21 +146,18 @@ export default function StudentTable() {
 
     const paginatedStudents = useMemo(() => {
         const start = (safePage - 1) * PAGE_SIZE;
-
         return filteredStudents.slice(start, start + PAGE_SIZE);
     }, [filteredStudents, safePage]);
 
-    const handleEdit = (student: Student) => {
-        router.push(
-            `/ students / update - student ? studentId = ${ student.id } `,
-        );
+    const handleView = (student: Student) => {
+        router.push(`/students/details?studentId=${student.id}`);
     };
 
     // UI-only delete for now. Connect your delete API here later.
     const handleDelete = async (student: Student) => {
         const result = await Swal.fire({
             title: 'Remove this student?',
-            html: `< b > ${ student.fullName }</ > will be removed from this table.`,
+            html: `<b>${student.fullName}</b> will be removed from this table.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, remove',
@@ -192,7 +173,7 @@ export default function StudentTable() {
 
             await Swal.fire({
                 title: 'Removed!',
-                text: `${ student.fullName } was removed from this view.`,
+                text: `${student.fullName} was removed from this view.`,
                 icon: 'success',
                 timer: 1400,
                 showConfirmButton: false,
@@ -204,7 +185,6 @@ export default function StudentTable() {
         {
             title: 'Student',
             key: 'student',
-            width: 260,
             render: (_, student) => (
                 <Space size={12}>
                     {student.profileImage?.trim() ? (
@@ -222,12 +202,12 @@ export default function StudentTable() {
 
                     <div className="min-w-0">
                         <Tooltip title={student.fullName}>
-                            <p className="max-w-[200px] truncate text-[13px] font-bold text-gray-900">
+                            <p className="max-w-[170px] truncate text-[13px] font-bold text-gray-900">
                                 {student.fullName || 'Unnamed Student'}
                             </p>
                         </Tooltip>
 
-                        <p className="mt-0.5 max-w-[200px] truncate text-[11px] font-medium text-gray-400">
+                        <p className="mt-0.5 max-w-[170px] truncate text-[11px] font-medium text-gray-400">
                             {student.id}
                         </p>
                     </div>
@@ -237,27 +217,15 @@ export default function StudentTable() {
         {
             title: 'Contact',
             key: 'contact',
-            width: 230,
             render: (_, student) => (
-                <div>
-                    <p className="whitespace-nowrap text-[12px] font-medium text-gray-700">
+                <div className="min-w-0">
+                    <p className="max-w-[200px] truncate text-[12px] font-medium text-gray-700">
                         {student.email || 'No email'}
                     </p>
-                    <p className="mt-0.5 whitespace-nowrap text-[11px] font-medium text-gray-400">
+                    <p className="mt-0.5 truncate text-[11px] font-medium text-gray-400">
                         {student.phone || 'No phone'}
                     </p>
                 </div>
-            ),
-        },
-        {
-            title: 'Role',
-            dataIndex: 'role',
-            key: 'role',
-            width: 110,
-            render: (role: string) => (
-                <span className="inline-block whitespace-nowrap rounded-full border border-gray-100 bg-gray-50 px-2.5 py-1 text-[12px] font-bold text-gray-500">
-                    {formatLabel(role)}
-                </span>
             ),
         },
         {
@@ -269,17 +237,6 @@ export default function StudentTable() {
                 <Text className="!text-[12px] !text-gray-600">
                     {gender || 'N/A'}
                 </Text>
-            ),
-        },
-        {
-            title: 'Location',
-            dataIndex: 'location',
-            key: 'location',
-            width: 160,
-            render: (location: string) => (
-                <span className="text-[12px] font-medium text-gray-500">
-                    {location || 'Not provided'}
-                </span>
             ),
         },
         {
@@ -296,12 +253,10 @@ export default function StudentTable() {
                 return (
                     <Tag
                         bordered={false}
-                        className={`!mr - 0!rounded - full!px - 2.5!py - 1!text - [11px]!font - bold ${ style.bg } `}
+                        className={`!mr-0 !rounded-full !px-2.5 !py-1 !text-[11px] !font-bold ${style.bg}`}
                     >
                         <span className="inline-flex items-center gap-1.5">
-                            <span
-                                className={`h - 1.5 w - 1.5 rounded - full ${ style.dot } `}
-                            />
+                            <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                             {formatLabel(status)}
                         </span>
                     </Tag>
@@ -311,25 +266,25 @@ export default function StudentTable() {
         {
             title: 'Action',
             key: 'action',
-            width: 110,
+            width: 190,
             align: 'center',
             render: (_, student) => (
-                <Space size={6}>
-                    <Tooltip title="Edit student">
-                        <Button
-                            type="text"
-                            aria-label={`Edit ${ student.fullName } `}
-                            icon={<Pencil size={16} />}
-                            onClick={() => handleEdit(student)}
-                            className="!flex !h-9 !w-9 !items-center !justify-center !rounded-lg !text-gray-500 hover:!bg-blue-50 hover:!text-blue-600"
-                        />
-                    </Tooltip>
+                <Space size={8}>
+                    <Button
+                        type="primary"
+                        aria-label={`View details of ${student.fullName}`}
+                        icon={<Eye size={14} />}
+                        onClick={() => handleView(student)}
+                        className="!flex !h-8 !items-center !gap-1.5 !rounded-xl !px-3 !text-[12px] !font-bold"
+                    >
+                        View details
+                    </Button>
 
                     <Tooltip title="Remove student from view">
                         <Button
                             type="text"
                             danger
-                            aria-label={`Remove ${ student.fullName } `}
+                            aria-label={`Remove ${student.fullName}`}
                             icon={<Trash2 size={16} />}
                             onClick={() => handleDelete(student)}
                             className="!flex !h-9 !w-9 !items-center !justify-center !rounded-lg hover:!bg-red-50"
@@ -368,12 +323,7 @@ export default function StudentTable() {
                 <div className="rounded-2xl border border-gray-100 bg-white p-4">
                     <div className="flex flex-col gap-3 md:flex-row">
                         <Input
-                            prefix={
-                                <LuSearch
-                                    className="text-gray-400"
-                                    size={16}
-                                />
-                            }
+                            prefix={<LuSearch className="text-gray-400" size={16} />}
                             value={search}
                             onChange={(event) => {
                                 setSearch(event.target.value);
@@ -411,7 +361,7 @@ export default function StudentTable() {
                         loading={isLoading}
                         pagination={false}
                         size="middle"
-                        scroll={{ x: 'max-content' }}
+                        tableLayout="fixed"
                         locale={{
                             emptyText: (
                                 <div className="py-8">
@@ -438,11 +388,7 @@ export default function StudentTable() {
                                 {filteredStudents.length === 0
                                     ? 0
                                     : (safePage - 1) * PAGE_SIZE + 1}
-                                –
-                                {Math.min(
-                                    safePage * PAGE_SIZE,
-                                    filteredStudents.length,
-                                )}
+                                –{Math.min(safePage * PAGE_SIZE, filteredStudents.length)}
                             </span>{' '}
                             of{' '}
                             <span className="font-bold text-gray-700">
@@ -456,44 +402,31 @@ export default function StudentTable() {
                                 aria-label="Previous page"
                                 icon={<MdKeyboardArrowLeft size={18} />}
                                 disabled={safePage <= 1}
-                                onClick={() =>
-                                    setCurrentPage((page) => page - 1)
-                                }
+                                onClick={() => setCurrentPage((page) => page - 1)}
                                 className="!flex !h-8 !w-8 !items-center !justify-center !rounded-lg"
                             />
 
-                            {Array.from(
-                                { length: totalPages },
-                                (_, index) => index + 1,
-                            ).map((page) => (
-                                <Button
-                                    key={page}
-                                    type={
-                                        safePage === page
-                                            ? 'primary'
-                                            : 'default'
-                                    }
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`!h - 8!w - 8!rounded - lg!text - [12px]!font - bold ${
-    safePage === page
-        ? '!border-gray-900 !bg-gray-900'
-        : '!border-gray-200 !text-gray-500'
-} `}
-                                >
-                                    {page}
-                                </Button>
-                            ))}
+                            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+                                (page) => (
+                                    <Button
+                                        key={page}
+                                        type={safePage === page ? 'primary' : 'default'}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`!h-8 !w-8 !rounded-lg !text-[12px] !font-bold ${safePage === page
+                                                ? '!border-gray-900 !bg-gray-900'
+                                                : '!border-gray-200 !text-gray-500'
+                                            }`}
+                                    >
+                                        {page}
+                                    </Button>
+                                ),
+                            )}
 
                             <Button
                                 aria-label="Next page"
                                 icon={<MdKeyboardArrowRight size={18} />}
-                                disabled={
-                                    totalPages === 0 ||
-                                    safePage >= totalPages
-                                }
-                                onClick={() =>
-                                    setCurrentPage((page) => page + 1)
-                                }
+                                disabled={totalPages === 0 || safePage >= totalPages}
+                                onClick={() => setCurrentPage((page) => page + 1)}
                                 className="!flex !h-8 !w-8 !items-center !justify-center !rounded-lg"
                             />
                         </div>

@@ -9,6 +9,7 @@ import { CiSettings } from 'react-icons/ci';
 import Image from 'next/image';
 import { LuBuilding2 } from 'react-icons/lu';
 import { AiOutlineFolderOpen } from 'react-icons/ai';
+import { LucideBriefcaseBusiness, User, User2, User2Icon, UserX2 } from 'lucide-react';
 
 /* ─── types ─── */
 interface SubItem {
@@ -44,27 +45,10 @@ const NAV_GROUPS: NavGroup[] = [
         children: [
             { label: 'All courses', href: '/courses' },
             { label: 'Add course', href: '/courses/create-course' },
+            { label: 'Review payments', href: '/courses/payments' },
         ],
     },
-    {
-        key: 'training-centers',
-        label: 'Training Centers',
-        icon: <LuBuilding2 size={17} />,
-        badge: 42,
-        children: [
-            { label: 'All centers', href: '/training-centers/all' },
-            { label: 'Add center', href: '/training-centers/create-center' },
-        ],
-    },
-    {
-        key: 'batches',
-        label: 'Batches',
-        icon: <FaRegCalendarAlt size={17} />,
-        children: [
-            { label: 'All batches', href: '/batches' },
-            { label: 'Add batch', href: '/batches/create-batch' },
-        ],
-    },
+   
     {
         key: 'mentors',
         label: 'Mentors',
@@ -81,19 +65,27 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <FaUserGraduate size={16} />,
         children: [
             { label: 'All students', href: '/students' },
-            { label: 'Add student', href: '/students/create-student' },
             { label: 'Certificates', href: '/students/certificates' },
         ],
     },
     {
         key: 'projects',
         label: 'Projects',
-        icon: <AiOutlineFolderOpen size={16} />,
+        icon: <AiOutlineFolderOpen size={17} />,
         badge: 5,
         children: [
             { label: 'Quotations', href: '/projects/quotation' },
-            { label: 'All projects', href: '/projects' },
-            { label: 'Add project', href: '/projects/create' },
+            { label: 'Orders', href: '/projects/orders' },
+        ],
+    },
+    {
+        key: 'services',
+        label: 'Services',
+        icon: <LucideBriefcaseBusiness className='font-bold' size={17} />,
+        badge: 5,
+        children: [
+            { label: 'All services', href: '/services' },
+            { label: 'Create Services', href: '/services/create' },
         ],
     },
 ];
@@ -111,24 +103,15 @@ const NAV_LINKS: NavLink[] = [
         icon: <MdOutlineMailOutline size={17} />,
         href: '/enrollment',
     },
+    {
+        key: 'customers',
+        label: 'Customers',
+        icon: <User2 size={17} />,
+        href: '/customers',
+    },
 ];
 
-const FOOTER_LINKS: NavLink[] = [
-    {
-        key: 'messages',
-        label: 'Messages',
-        href: '/messages',
-        icon: <MdOutlineMailOutline size={17} />,
-        badge: 3,
-    },
-    {
-        key: 'settings',
-        label: 'Manage App',
-        href: '/dashboard/settings',
-        icon: <CiSettings size={18} />,
-        external: true,
-    },
-];
+ 
 
 /* ─── icon wrapper ─── */
 function NavIcon({
@@ -268,7 +251,7 @@ export default function SidebarClient({ children }: { children: React.ReactNode 
             {/* Sidebar */}
             <aside className="w-64 shrink-0 bg-white border-r border-gray-100 flex flex-col min-h-screen sticky top-0">
                 {/* Logo */}
-                <div className="border-b border-gray-50 py-10 flex items-center justify-center">
+                <div className="border-b border-gray-50 py-4 flex items-center justify-center">
                     <Link href='/' className='text-base font-light tracking-[0.25em] uppercase text-zinc-800 inline-block'>
                         <Image
                             src='https://res.cloudinary.com/dymnrefpr/image/upload/v1790859268/wptp7quzw5h8vtveeoyj.png'
@@ -284,7 +267,7 @@ export default function SidebarClient({ children }: { children: React.ReactNode 
                
 
                 {/* Nav */}
-                <nav className="flex-1 px-3 py-3 flex flex-col gap-0.5 overflow-y-auto">
+                <nav className="flex-1 px-3 py-2 flex flex-col gap-0.5 overflow-y-auto">
                     <p className="text-[10px] font-bold tracking-[.1em] uppercase text-gray-400 px-2 py-2">
                         Main
                     </p>
@@ -302,12 +285,7 @@ export default function SidebarClient({ children }: { children: React.ReactNode 
                         />
                     ))}
 
-                    <p className="text-[10px] font-bold tracking-[.1em] uppercase text-gray-400 px-2 py-2 mt-2">
-                        Communication</p>
-
-                    {FOOTER_LINKS.map((item) => (
-                        <NavItem key={item.key} item={item} isActive={pathname === item.href} />
-                    ))}
+                    
                 </nav>
 
                 {/* Bottom user hint */}

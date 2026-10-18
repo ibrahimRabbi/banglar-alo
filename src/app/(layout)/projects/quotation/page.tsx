@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -10,9 +10,8 @@ import {
     Button,
     Typography,
     ConfigProvider,
-    Modal,
-    Descriptions,
     Empty,
+    Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -23,155 +22,53 @@ import {
     LuSearch,
     LuFileText,
     LuEye,
-    LuMail,
-    LuPhone,
+    LuCalendarDays,
+    LuUserRound,
+    LuBriefcaseBusiness,
 } from 'react-icons/lu';
+
+import { useGetAllBookingsQuery } from '@/redux/features/services/serviceApi';
 
 const { Title, Text } = Typography;
 
-type QuotationStatus =
-    | 'pending'
-    | 'in_progress'
-    | 'completed'
-    | 'cancelled';
+const PAGE_SIZE = 10;
 
-type Quotation = {
+type ServiceBooking = {
     id: string;
     serviceId: string;
-    name: string;
-    email: string;
-    phone: string;
-    subject: string;
+    packageId: string | null;
+    userId: string;
+    clientName: string;
+    clientEmail: string;
+    clientPhone: string;
     message: string;
-    status: QuotationStatus;
-    submittedAt: string;
+    offerType: string;
+    budget: number | null;
+    timeline: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    service: {
+        id: string;
+        title: string;
+    } | null;
+    package: {
+        id: string;
+        title: string;
+    } | null;
 };
 
-const initialQuotations: Quotation[] = [
-    {
-        id: '1',
-        serviceId: 'SRV-1001',
-        name: 'Rahim Ahmed',
-        email: 'rahim@example.com',
-        phone: '+8801712345678',
-        subject: 'Website Development',
-        message:
-            'I need a business website with a modern design, responsive layout, contact form, and admin dashboard. Please send me a quotation with the estimated cost and timeline.',
-        status: 'pending',
-        submittedAt: '2026-10-12',
-    },
-    {
-        id: '2',
-        serviceId: 'SRV-1002',
-        name: 'Nusrat Jahan',
-        email: 'nusrat@example.com',
-        phone: '+8801812345678',
-        subject: 'E-commerce Website',
-        message:
-            'I want to build an e-commerce website with product management, cart functionality, payment integration, and order tracking.',
-        status: 'in_progress',
-        submittedAt: '2026-10-11',
-    },
-    {
-        id: '3',
-        serviceId: 'SRV-1003',
-        name: 'Sabbir Hossain',
-        email: 'sabbir@example.com',
-        phone: '+8801912345678',
-        subject: 'Mobile App Development',
-        message:
-            'I am interested in developing a mobile application for my business. I would like to discuss the required features and project budget.',
-        status: 'completed',
-        submittedAt: '2026-10-10',
-    },
-    {
-        id: '4',
-        serviceId: 'SRV-1004',
-        name: 'Mim Akter',
-        email: 'mim@example.com',
-        phone: '+8801612345678',
-        subject: 'UI/UX Design',
-        message:
-            'I need UI/UX design for a dashboard and customer-facing web application. Please share your design process and estimated price.',
-        status: 'pending',
-        submittedAt: '2026-10-09',
-    },
-    {
-        id: '5',
-        serviceId: 'SRV-1005',
-        name: 'Tanvir Hasan',
-        email: 'tanvir@example.com',
-        phone: '+8801512345678',
-        subject: 'SEO Services',
-        message:
-            'I want SEO services for my company website to improve search visibility and organic traffic. Please provide your service packages.',
-        status: 'cancelled',
-        submittedAt: '2026-10-08',
-    },
-    {
-        id: '6',
-        serviceId: 'SRV-1006',
-        name: 'Ayesha Rahman',
-        email: 'ayesha@example.com',
-        phone: '+8801312345678',
-        subject: 'Brand Identity Design',
-        message:
-            'I need a complete brand identity package including logo design, color palette, typography, and social media branding.',
-        status: 'completed',
-        submittedAt: '2026-10-07',
-    },
-    {
-        id: '7',
-        serviceId: 'SRV-1007',
-        name: 'Fahim Chowdhury',
-        email: 'fahim@example.com',
-        phone: '+8801412345678',
-        subject: 'Custom Software',
-        message:
-            'I am looking for custom business management software to manage customers, employees, reports, and daily operations.',
-        status: 'pending',
-        submittedAt: '2026-10-06',
-    },
-];
-
-const PAGE_SIZE = 6;
-
-const statusOptions = [
-    { value: 'all', label: 'All Quotations' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
-];
-
-const statusConfig: Record<
-    QuotationStatus,
-    {
-        label: string;
-        className: string;
-        dotClassName: string;
-    }
-> = {
-    pending: {
-        label: 'Pending',
-        className: '!bg-amber-50 !text-amber-700',
-        dotClassName: 'bg-amber-500',
-    },
-    in_progress: {
-        label: 'In Progress',
-        className: '!bg-blue-50 !text-blue-700',
-        dotClassName: 'bg-blue-500',
-    },
-    completed: {
-        label: 'Completed',
-        className: '!bg-emerald-50 !text-emerald-700',
-        dotClassName: 'bg-emerald-500',
-    },
-    cancelled: {
-        label: 'Cancelled',
-        className: '!bg-red-50 !text-red-600',
-        dotClassName: 'bg-red-500',
-    },
+type BookingApiResponse = {
+    statusCode?: number;
+    success?: boolean;
+    message?: string;
+    data?: ServiceBooking[];
+    meta?: {
+        page?: number;
+        limit?: number;
+        total?: number;
+        totalPage?: number;
+    };
 };
 
 const antdTheme = {
@@ -199,148 +96,269 @@ const antdTheme = {
     },
 };
 
-const QuotationTable = () => {
-    const [quotations] = useState<Quotation[]>(initialQuotations);
+const STATUS_LIST = [
+    'NEW',
+    'CONTACTED',
+    'IN_PROGRESS',
+    'ACCEPTED',
+    'COMPLETED',
+    'CANCELLED',
+    'REJECTED',
+];
+
+const statusOptions = [
+    { value: 'all', label: 'All Bookings' },
+    ...STATUS_LIST.map((s) => ({
+        value: s,
+        label: s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    })),
+    { value: 'OTHER', label: 'Other Statuses' },
+];
+
+const getStatusStyle = (status: string) => {
+    switch ((status || '').toUpperCase()) {
+        case 'NEW':
+            return {
+                label: 'New',
+                className: '!bg-blue-50 !text-blue-700',
+                dotClassName: 'bg-blue-500',
+            };
+
+        case 'CONTACTED':
+            return {
+                label: 'Contacted',
+                className: '!bg-cyan-50 !text-cyan-700',
+                dotClassName: 'bg-cyan-500',
+            };
+
+        case 'IN_PROGRESS':
+            return {
+                label: 'In Progress',
+                className: '!bg-amber-50 !text-amber-700',
+                dotClassName: 'bg-amber-500',
+            };
+
+        case 'ACCEPTED':
+            return {
+                label: 'Accepted',
+                className: '!bg-indigo-50 !text-indigo-700',
+                dotClassName: 'bg-indigo-500',
+            };
+
+        case 'COMPLETED':
+            return {
+                label: 'Completed',
+                className: '!bg-emerald-50 !text-emerald-700',
+                dotClassName: 'bg-emerald-500',
+            };
+
+        case 'CANCELLED':
+        case 'REJECTED':
+            return {
+                label:
+                    status.charAt(0).toUpperCase() +
+                    status.slice(1).toLowerCase(),
+                className: '!bg-red-50 !text-red-600',
+                dotClassName: 'bg-red-500',
+            };
+
+        default:
+            return {
+                label: status ? status.replace(/[_-]/g, ' ') : 'Unknown',
+                className: '!bg-gray-100 !text-gray-600',
+                dotClassName: 'bg-gray-400',
+            };
+    }
+};
+
+const formatDate = (value?: string) => {
+    if (!value) return '—';
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    }).format(date);
+};
+
+const formatBudget = (budget: number | null) => {
+    if (budget === null || budget === undefined) return 'Not specified';
+
+    return `৳${budget.toLocaleString('en-BD')}`;
+};
+
+const ServiceBookingTable = () => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedQuotation, setSelectedQuotation] =
-        useState<Quotation | null>(null);
 
-    const filteredQuotations = useMemo(() => {
+    const {
+        data: responseData,
+        isLoading,
+        isFetching,
+        isError,
+        refetch,
+    } = useGetAllBookingsQuery({
+        page: currentPage,
+        limit: PAGE_SIZE,
+    });
+
+    const response = responseData as BookingApiResponse | undefined;
+
+    const bookings = response?.data ?? [];
+    const meta = response?.meta;
+
+    const totalBookings = meta?.total ?? 0;
+    const totalPages = meta?.totalPage ?? Math.ceil(totalBookings / PAGE_SIZE);
+
+    const safePage = Math.min(currentPage, Math.max(totalPages, 1));
+
+    const filteredBookings = useMemo(() => {
         const query = search.trim().toLowerCase();
 
-        return quotations.filter((quotation) => {
+        return bookings.filter((booking) => {
+            const serviceName = booking.service?.title ?? '';
+            const packageName = booking.package?.title ?? '';
+
             const matchesSearch =
-                quotation.serviceId.toLowerCase().includes(query) ||
-                quotation.name.toLowerCase().includes(query) ||
-                quotation.email.toLowerCase().includes(query) ||
-                quotation.phone.toLowerCase().includes(query) ||
-                quotation.subject.toLowerCase().includes(query);
+                !query ||
+                booking.clientName.toLowerCase().includes(query) ||
+                booking.clientEmail.toLowerCase().includes(query) ||
+                booking.clientPhone.toLowerCase().includes(query) ||
+                serviceName.toLowerCase().includes(query) ||
+                packageName.toLowerCase().includes(query) ||
+                booking.offerType.toLowerCase().includes(query) ||
+                booking.id.toLowerCase().includes(query);
+
+            const normalizedStatus = booking.status.toUpperCase();
 
             const matchesStatus =
                 statusFilter === 'all' ||
-                quotation.status === statusFilter;
+                (statusFilter === 'OTHER'
+                    ? !STATUS_LIST.includes(normalizedStatus)
+                    : normalizedStatus === statusFilter);
 
             return matchesSearch && matchesStatus;
         });
-    }, [quotations, search, statusFilter]);
+    }, [bookings, search, statusFilter]);
 
-    const totalPages = Math.ceil(
-        filteredQuotations.length / PAGE_SIZE,
-    );
-
-    const safePage = Math.min(
-        currentPage,
-        Math.max(totalPages, 1),
-    );
-
-    const paginatedQuotations = useMemo(() => {
-        const start = (safePage - 1) * PAGE_SIZE;
-
-        return filteredQuotations.slice(
-            start,
-            start + PAGE_SIZE,
-        );
-    }, [filteredQuotations, safePage]);
-
-    const columns: ColumnsType<Quotation> = [
+    const columns: ColumnsType<ServiceBooking> = [
         {
             title: 'Client',
             key: 'client',
-            width: 210,
-            render: (_, quotation) => (
+            width: 225,
+            render: (_, booking) => (
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0">
-                        <span className="text-sm font-bold">
-                            {quotation.name
-                                .split(' ')
-                                .map((part) => part[0])
-                                .slice(0, 2)
-                                .join('')
-                                .toUpperCase()}
-                        </span>
+                        <LuUserRound size={18} />
                     </div>
 
                     <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-gray-900 truncate">
-                            {quotation.name}
-                        </p>
+                        <Tooltip title={booking.clientName}>
+                            <p className="text-[13px] font-bold text-gray-900 truncate">
+                                {booking.clientName || 'Unknown Client'}
+                            </p>
+                        </Tooltip>
+
                         <p className="text-[11px] text-gray-400 truncate">
-                            {quotation.email}
+                            {booking.clientEmail || 'No email provided'}
                         </p>
+
+                        {booking.clientPhone && (
+                            <p className="text-[11px] text-gray-400 truncate">
+                                {booking.clientPhone}
+                            </p>
+                        )}
                     </div>
                 </div>
             ),
         },
         {
-            title: 'Service ID',
-            dataIndex: 'serviceId',
-            key: 'serviceId',
-            width: 130,
-            render: (serviceId: string) => (
-                <span className="inline-block text-[11px] font-bold text-gray-600 bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-full whitespace-nowrap">
-                    {serviceId}
-                </span>
-            ),
+            title: 'Service / Package',
+            key: 'service',
+            width: 210,
+            render: (_, booking) => {
+                const title =
+                    booking.service?.title ||
+                    booking.package?.title ||
+                    'Not specified';
+
+                return (
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                            <LuBriefcaseBusiness size={15} className="text-gray-600" />
+                        </div>
+
+                        <div className="min-w-0">
+                            <Tooltip title={title}>
+                                <p className="text-[12px] font-semibold text-gray-800 truncate">
+                                    {title}
+                                </p>
+                            </Tooltip>
+
+                            <p className="text-[10px] text-gray-400">
+                                {booking.package ? 'Package booking' : 'Service booking'}
+                            </p>
+                        </div>
+                    </div>
+                );
+            },
         },
+        
         {
-            title: 'Phone',
-            dataIndex: 'phone',
-            key: 'phone',
-            width: 155,
-            render: (phone: string) => (
-                <Text className="!text-[12px] !text-gray-600 whitespace-nowrap">
-                    {phone}
+            title: 'Budget',
+            dataIndex: 'budget',
+            key: 'budget',
+            width: 125,
+            render: (budget: number | null) => (
+                <Text strong className="!text-[12px] !text-gray-800 whitespace-nowrap">
+                    {formatBudget(budget)}
                 </Text>
             ),
         },
         {
-            title: 'Subject',
-            dataIndex: 'subject',
-            key: 'subject',
-            width: 190,
-            render: (subject: string) => (
-                <Text
-                    strong
-                    className="!text-[12px] !text-gray-800"
-                    ellipsis={{ tooltip: subject }}
-                >
-                    {subject}
-                </Text>
+            title: 'Timeline',
+            dataIndex: 'timeline',
+            key: 'timeline',
+            width: 125,
+            render: (timeline: string) => (
+                <span className="text-[12px] text-gray-600">{timeline || '—'}</span>
             ),
         },
         {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            width: 145,
-            render: (status: QuotationStatus) => {
-                const config = statusConfig[status];
+            width: 130,
+            render: (status: string) => {
+                const config = getStatusStyle(status);
 
                 return (
                     <Tag
                         bordered={false}
-                        className={`!rounded - full!px - 2.5!py - 1!text - [11px]!font - bold!mr - 0 ${ config.className } `}
+                        className={`!rounded-full !px-2.5 !py-1 !text-[11px] !font-bold !mr-0 ${config.className}`}
                     >
                         <span className="inline-flex items-center gap-1.5">
-                            <span
-                                className={`w - 1.5 h - 1.5 rounded - full ${ config.dotClassName } `}
-                            />
+                            <span className={`w-1.5 h-1.5 rounded-full ${config.dotClassName}`} />
                             {config.label}
                         </span>
                     </Tag>
                 );
             },
         },
+       
         {
             title: 'Action',
             key: 'action',
-            width: 160,
+            width: 150,
             align: 'center',
-            render: (_, quotation) => (
+            render: (_, booking) => (
                 <Link
-                    href={`quotation/view-details?id=${ encodeURIComponent(quotation.id) } `}
+                    href={`/projects/quotation/view-details?id=${encodeURIComponent(booking.id)}`}
                     className="inline-flex h-8 items-center gap-2 rounded-lg border border-gray-200 px-3 text-[11px] font-semibold text-gray-700 transition-colors hover:border-gray-900 hover:text-gray-900"
                 >
                     <LuEye size={15} />
@@ -360,47 +378,37 @@ const QuotationTable = () => {
                             level={1}
                             className="!text-[22px] !font-extrabold !text-gray-900 !tracking-tight !mb-1"
                         >
-                            Service Quotations
+                            Service Bookings
                         </Title>
 
                         <Text className="!text-[13px] !text-gray-400 !font-medium">
-                            Review client requests and manage quotation
-                            status
+                            Review client requests, budgets, and booking details
                         </Text>
                     </div>
 
-                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <div className="flex items-center gap-3 self-start sm:self-auto">
                         <div className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center">
                             <LuFileText size={18} />
                         </div>
 
                         <div>
-                            <p className="text-[11px] text-gray-400 font-medium">
-                                Total Quotations
-                            </p>
-                            <p className="text-lg font-extrabold text-gray-900">
-                                {quotations.length}
-                            </p>
+                            <p className="text-[11px] text-gray-400 font-medium">Total Bookings</p>
+                            <p className="text-lg font-extrabold text-gray-900">{totalBookings}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Search and Status Filter */}
+                {/* Search and status filter */}
                 <div className="bg-white border border-gray-100 rounded-2xl p-4">
                     <div className="flex flex-col md:flex-row gap-3">
                         <Input
-                            prefix={
-                                <LuSearch
-                                    className="text-gray-400"
-                                    size={16}
-                                />
-                            }
+                            prefix={<LuSearch className="text-gray-400" size={16} />}
                             value={search}
                             onChange={(event) => {
                                 setSearch(event.target.value);
                                 setCurrentPage(1);
                             }}
-                            placeholder="Search by service ID, client, email, phone, or subject..."
+                            placeholder="Search by client, email, service, or booking ID..."
                             allowClear
                             className="!flex-1"
                         />
@@ -413,88 +421,55 @@ const QuotationTable = () => {
                             }}
                             className="w-full md:!w-[210px]"
                             options={statusOptions}
-                            optionRender={(option) => {
-                                const value = String(option.value);
-
-                                if (value === 'all') {
-                                    return (
-                                        <div className="flex items-center justify-between py-1">
-                                            <span>All Quotations</span>
-                                            <span className="text-xs text-gray-400">
-                                                {quotations.length}
-                                            </span>
-                                        </div>
-                                    );
-                                }
-
-                                const status =
-                                    value as QuotationStatus;
-                                const config = statusConfig[status];
-
-                                const count = quotations.filter(
-                                    (quotation) =>
-                                        quotation.status === status,
-                                ).length;
-
-                                return (
-                                    <div className="flex items-center justify-between gap-3 py-1">
-                                        <span className="flex items-center gap-2">
-                                            <span
-                                                className={`w - 2 h - 2 rounded - full ${ config.dotClassName } `}
-                                            />
-                                            {config.label}
-                                        </span>
-                                        <span className="text-xs text-gray-400">
-                                            {count}
-                                        </span>
-                                    </div>
-                                );
-                            }}
                         />
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-50">
                         <Text className="!text-[11px] !text-gray-400">
-                            Showing results for{' '}
+                            Status:{' '}
                             <span className="!text-gray-700 !font-bold">
-                                {
-                                    statusOptions.find(
-                                        (option) =>
-                                            option.value === statusFilter,
-                                    )?.label
-                                }
+                                {statusOptions.find((o) => o.value === statusFilter)?.label}
                             </span>
                         </Text>
 
                         <Text className="!text-[11px] !text-gray-400">
-                            {filteredQuotations.length} result
-                            {filteredQuotations.length !== 1
-                                ? 's'
-                                : ''}
+                            {filteredBookings.length} booking
+                            {filteredBookings.length !== 1 ? 's' : ''} on this page
                         </Text>
                     </div>
                 </div>
 
-                {/* Quotations Table */}
+                {/* Bookings table */}
                 <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-                    <Table<Quotation>
+                    <Table<ServiceBooking>
                         rowKey="id"
                         columns={columns}
-                        dataSource={paginatedQuotations}
+                        dataSource={filteredBookings}
                         pagination={false}
+                        loading={isLoading || isFetching}
                         size="middle"
                         tableLayout="fixed"
-                        scroll={{ x: 1000 }}
+                        scroll={{ x: 1250 }}
                         locale={{
                             emptyText: (
                                 <Empty
                                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                                     description={
                                         <span className="text-[12px] text-gray-400">
-                                            No quotations found
+                                            {isError
+                                                ? 'Unable to load bookings'
+                                                : search || statusFilter !== 'all'
+                                                    ? 'No matching bookings found'
+                                                    : 'No service bookings available yet'}
                                         </span>
                                     }
-                                />
+                                >
+                                    {isError && (
+                                        <Button size="small" onClick={() => refetch()}>
+                                            Try Again
+                                        </Button>
+                                    )}
+                                </Empty>
                             ),
                         }}
                     />
@@ -504,70 +479,46 @@ const QuotationTable = () => {
                         <p className="text-[11.5px] text-gray-400 font-medium">
                             Showing{' '}
                             <span className="text-gray-700 font-bold">
-                                {filteredQuotations.length === 0
-                                    ? 0
-                                    : (safePage - 1) * PAGE_SIZE + 1}
-                                –
-                                {Math.min(
-                                    safePage * PAGE_SIZE,
-                                    filteredQuotations.length,
-                                )}
+                                {totalBookings === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}
+                                {'–'}
+                                {Math.min(safePage * PAGE_SIZE, totalBookings)}
                             </span>{' '}
-                            of{' '}
-                            <span className="text-gray-700 font-bold">
-                                {filteredQuotations.length}
-                            </span>{' '}
-                            quotations
+                            of <span className="text-gray-700 font-bold">{totalBookings}</span>{' '}
+                            bookings
                         </p>
 
                         <div className="flex items-center gap-1.5">
                             <Button
                                 aria-label="Previous page"
-                                icon={
-                                    <MdKeyboardArrowLeft size={18} />
-                                }
-                                disabled={safePage <= 1}
-                                onClick={() =>
-                                    setCurrentPage((page) => page - 1)
-                                }
+                                icon={<MdKeyboardArrowLeft size={18} />}
+                                disabled={safePage <= 1 || isFetching}
+                                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                                 className="!w-8 !h-8 !flex !items-center !justify-center !rounded-lg"
                             />
 
-                            {Array.from(
-                                { length: totalPages },
-                                (_, index) => index + 1,
-                            ).map((page) => (
-                                <Button
-                                    key={page}
-                                    type={
-                                        safePage === page
-                                            ? 'primary'
-                                            : 'default'
-                                    }
-                                    onClick={() =>
-                                        setCurrentPage(page)
-                                    }
-                                    className={`!w - 8!h - 8!rounded - lg!text - [12px]!font - bold ${
-    safePage === page
-        ? '!bg-gray-900 !border-gray-900'
-        : '!text-gray-500 !border-gray-200'
-} `}
-                                >
-                                    {page}
-                                </Button>
-                            ))}
+                            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+                                (page) => (
+                                    <Button
+                                        key={page}
+                                        type={safePage === page ? 'primary' : 'default'}
+                                        disabled={isFetching}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`!w-8 !h-8 !rounded-lg !text-[12px] !font-bold ${safePage === page
+                                                ? '!bg-gray-900 !border-gray-900'
+                                                : '!text-gray-500 !border-gray-200'
+                                            }`}
+                                    >
+                                        {page}
+                                    </Button>
+                                ),
+                            )}
 
                             <Button
                                 aria-label="Next page"
-                                icon={
-                                    <MdKeyboardArrowRight size={18} />
-                                }
-                                disabled={
-                                    totalPages === 0 ||
-                                    safePage >= totalPages
-                                }
+                                icon={<MdKeyboardArrowRight size={18} />}
+                                disabled={totalPages === 0 || safePage >= totalPages || isFetching}
                                 onClick={() =>
-                                    setCurrentPage((page) => page + 1)
+                                    setCurrentPage((page) => Math.min(totalPages, page + 1))
                                 }
                                 className="!w-8 !h-8 !flex !items-center !justify-center !rounded-lg"
                             />
@@ -575,94 +526,8 @@ const QuotationTable = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Optional quick-preview modal */}
-            <Modal
-                title="Quotation Preview"
-                open={!!selectedQuotation}
-                onCancel={() => setSelectedQuotation(null)}
-                footer={[
-                    <Button
-                        key="close"
-                        onClick={() => setSelectedQuotation(null)}
-                    >
-                        Close
-                    </Button>,
-                ]}
-                width={600}
-                centered
-            >
-                {selectedQuotation && (
-                    <Descriptions
-                        bordered
-                        size="small"
-                        column={1}
-                        labelStyle={{
-                            width: 130,
-                            color: '#6b7280',
-                            fontSize: 12,
-                        }}
-                        contentStyle={{
-                            color: '#111827',
-                            fontSize: 12,
-                        }}
-                    >
-                        <Descriptions.Item label="Service ID">
-                            {selectedQuotation.serviceId}
-                        </Descriptions.Item>
-
-                        <Descriptions.Item label="Client Name">
-                            {selectedQuotation.name}
-                        </Descriptions.Item>
-
-                        <Descriptions.Item label="Email">
-                            <a
-                                href={`mailto:${ selectedQuotation.email } `}
-                                className="inline-flex items-center gap-2 text-blue-600"
-                            >
-                                <LuMail size={14} />
-                                {selectedQuotation.email}
-                            </a>
-                        </Descriptions.Item>
-
-                        <Descriptions.Item label="Phone">
-                            <a
-                                href={`tel:${ selectedQuotation.phone } `}
-                                className="inline-flex items-center gap-2 text-blue-600"
-                            >
-                                <LuPhone size={14} />
-                                {selectedQuotation.phone}
-                            </a>
-                        </Descriptions.Item>
-
-                        <Descriptions.Item label="Subject">
-                            {selectedQuotation.subject}
-                        </Descriptions.Item>
-
-                        <Descriptions.Item label="Status">
-                            <Tag
-                                bordered={false}
-                                className={statusConfig[
-                                    selectedQuotation.status
-                                ].className}
-                            >
-                                {
-                                    statusConfig[
-                                        selectedQuotation.status
-                                    ].label
-                                }
-                            </Tag>
-                        </Descriptions.Item>
-
-                        <Descriptions.Item label="Message">
-                            {selectedQuotation.message}
-                        </Descriptions.Item>
-                    </Descriptions>
-                )}
-            </Modal>
         </ConfigProvider>
     );
 };
 
-export default QuotationTable;
- 
+export default ServiceBookingTable;

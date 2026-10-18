@@ -41,10 +41,40 @@ export const courseApi = baseApi.injectEndpoints({
                     body : data
                 }
             }
-        })
+        }),
+
+        getPaymentReviews: builder.query({
+            query: (payload) => {
+                return {
+                    url: '/courses/payment-reviews',
+                    method: 'GET',
+                    params: {
+                        ...payload
+                    }
+                }
+            }
+        }),
+        getSinglePaymentReviews: builder.query({
+            query: (tran_id) => {
+                return {
+                    url: `/courses/payment-reviews/${tran_id}`,
+                    method: 'GET',
+                     
+                }
+            }
+        }),
+        updatePaymentStatus: builder.mutation({
+            query: (id) => {
+                return {
+                    url: `/courses/payment-reviews/${id}/confirm`,
+                    method: 'PATCH',
+                    
+                }
+            }
+        }),
 
          
     })
 })
 
-export const {useGetAllCoursesQuery, useGetCourseByIdQuery, useUpdateCourseMutation, useDeleteCourseMutation, useCreateCourseMutation} = courseApi
+export const { useGetAllCoursesQuery, useGetCourseByIdQuery, useUpdateCourseMutation, useDeleteCourseMutation, useCreateCourseMutation, useGetPaymentReviewsQuery, useGetSinglePaymentReviewsQuery, useUpdatePaymentStatusMutation } = courseApi

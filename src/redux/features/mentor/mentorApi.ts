@@ -24,6 +24,14 @@ export const mentorApi = baseApi.injectEndpoints({
                 body: mentorData,
             }),
         }),
+
+        updateMentor: builder.mutation({
+            query: (mentorData) => ({
+                url: "/users/update-profile",
+                method: "PUT",
+                body: mentorData,
+            }),
+        }),
         
 
          
@@ -31,4 +39,4 @@ export const mentorApi = baseApi.injectEndpoints({
     })
 })
 
-export const {useGetAllMentorsQuery, useGetMentorByIdQuery, useCreateMentorMutation} = mentorApi
+export const { useGetAllMentorsQuery, useGetMentorByIdQuery, useCreateMentorMutation, useUpdateMentorMutation } = mentorApi

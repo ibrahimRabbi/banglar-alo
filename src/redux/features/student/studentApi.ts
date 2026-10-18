@@ -17,8 +17,16 @@ export const studentApi = baseApi.injectEndpoints({
                 body: data,
             }),
 
-        })
+        }),
+        getStudentById: builder.query({
+            query: (id) => ({
+                url: `/users/directory/${id}`,
+                method: "GET",
+                
+            }),
+
+        }),
     })
 })
 
-export const { useGetAllStudentsQuery, useCreateStudentMutation } = studentApi
+export const { useGetAllStudentsQuery, useCreateStudentMutation, useGetStudentByIdQuery } = studentApi
