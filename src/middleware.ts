@@ -1,4 +1,4 @@
-// src/middleware.ts
+// // src/middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import admin from './lib/adminProfile';
@@ -29,3 +29,4 @@ export const config = {
         '/((?!api|_next/static|_next/image|favicon.ico|auth).*)',
     ],
 };
+ 
